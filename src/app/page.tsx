@@ -7,7 +7,7 @@ import AspectRatioSelector, {
   getAspectRatioValue,
 } from "./components/AspectRatioSelector";
 import CropOverlay, { CropBox } from "./components/CropOverlay";
-import { cropImage, downloadDataUrl } from "./components/CropEngine";
+import { cropImage, downloadDataUrl, shareImageFile, canShareFiles } from "./components/CropEngine";
 import ThemeToggle from "./components/ThemeToggle";
 import Button from "./components/Button";
 
@@ -20,6 +20,7 @@ export default function Home() {
   const [cropBox, setCropBox] = useState<CropBox | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [exporting, setExporting] = useState(false);
+  const [showExportSheet, setShowExportSheet] = useState(false);
   const [extendMode, setExtendMode] = useState(false);
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
   const [fileName, setFileName] = useState<string>("image");
@@ -101,16 +102,61 @@ export default function Home() {
     return () => window.removeEventListener("paste", onPaste);
   }, []);
 
+  const buildCroppedDataUrl = async () => {
+    if (!imageSrc || !cropBox || !containerSize.w) return null;
+    const imageOffset = extendMode ? { x: EXTEND_PAD, y: EXTEND_PAD } : { x: 0, y: 0 };
+    return cropImage(imageSrc, containerSize.w, containerSize.h, cropBox, imageOffset);
+  };
+
   const handleCrop = async () => {
-    if (!imageSrc || !cropBox || !containerSize.w) return;
     setExporting(true);
     try {
-      const imageOffset = extendMode ? { x: EXTEND_PAD, y: EXTEND_PAD } : { x: 0, y: 0 };
-      const dataUrl = await cropImage(imageSrc, containerSize.w, containerSize.h, cropBox, imageOffset);
+      const dataUrl = await buildCroppedDataUrl();
+      if (!dataUrl) return;
       const base = fileName.replace(/\.[^.]+$/, "");
       downloadDataUrl(dataUrl, `${base}-cadre`);
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportToFiles = async () => {
+    setShowExportSheet(false);
+    setExporting(true);
+    try {
+      const dataUrl = await buildCroppedDataUrl();
+      if (!dataUrl) return;
+      const base = fileName.replace(/\.[^.]+$/, "");
+      downloadDataUrl(dataUrl, `${base}-cadre`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportToCameraRoll = async () => {
+    setShowExportSheet(false);
+    setExporting(true);
+    try {
+      const dataUrl = await buildCroppedDataUrl();
+      if (!dataUrl) return;
+      const base = fileName.replace(/\.[^.]+$/, "");
+      await shareImageFile(dataUrl, `${base}-cadre`);
+    } catch {
+      // user cancelled share sheet or sharing failed — fall back to download
+      const dataUrl = await buildCroppedDataUrl();
+      if (!dataUrl) return;
+      const base = fileName.replace(/\.[^.]+$/, "");
+      downloadDataUrl(dataUrl, `${base}-cadre`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleMobileExport = () => {
+    if (canShareFiles()) {
+      setShowExportSheet(true);
+    } else {
+      handleCrop();
     }
   };
 
@@ -166,7 +212,7 @@ export default function Home() {
           <Button onClick={handleReset} variant="ghost">RESET</Button>
           <Button onClick={handleClear} variant="ghost" danger>CLEAR</Button>
           <div className="flex-1" />
-          <Button onClick={handleCrop} variant="primary" loading={exporting}>
+          <Button onClick={handleMobileExport} variant="primary" loading={exporting}>
             <svg width="9" height="10" viewBox="0 0 9 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
               <path d="M4.5 1v6M1.5 5.5l3 3 3-3" />
             </svg>
@@ -266,6 +312,57 @@ export default function Home() {
           </div>
         )}
       </div>
+      {showExportSheet && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowExportSheet(false)}
+        >
+          <div
+            className="bg-surface border-t border-border rounded-t-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-4 pt-4 pb-1 text-center">
+              <span className="text-[9px] font-mono tracking-[0.2em] text-subtle uppercase">Export Image</span>
+            </div>
+
+            <div className="flex flex-col gap-1 p-3">
+              <button
+                onClick={handleExportToCameraRoll}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-accent text-canvas text-[11px] font-mono tracking-[0.12em] uppercase font-medium active:opacity-75 transition-opacity"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="3" width="12" height="9" rx="1.5" />
+                  <circle cx="7" cy="7.5" r="2.2" />
+                  <path d="M4.5 3V2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5V3" />
+                </svg>
+                Save to Camera Roll
+              </button>
+
+              <button
+                onClick={handleExportToFiles}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-surface-2 text-foreground text-[11px] font-mono tracking-[0.12em] uppercase active:opacity-75 transition-opacity"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 1v8M4 6.5l3 3 3-3" />
+                  <path d="M2 10v1.5A1.5 1.5 0 0 0 3.5 13h7A1.5 1.5 0 0 0 12 11.5V10" />
+                </svg>
+                Save to Files
+              </button>
+            </div>
+
+            <div className="px-3 pb-3">
+              <button
+                onClick={() => setShowExportSheet(false)}
+                className="w-full px-4 py-3.5 rounded-xl bg-surface-2 text-subtle text-[11px] font-mono tracking-[0.12em] uppercase active:opacity-75 transition-opacity"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="h-[env(safe-area-inset-bottom)]" />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

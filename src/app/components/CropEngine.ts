@@ -69,3 +69,15 @@ export function downloadDataUrl(dataUrl: string, filename = "crop") {
   a.download = `${filename}.${ext}`;
   a.click();
 }
+
+export async function shareImageFile(dataUrl: string, filename = "crop"): Promise<void> {
+  const ext = dataUrl.split(";")[0].split("/")[1] ?? "png";
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  const file = new File([blob], `${filename}.${ext}`, { type: `image/${ext}` });
+  await navigator.share({ files: [file] });
+}
+
+export function canShareFiles(): boolean {
+  return typeof navigator !== "undefined" && typeof navigator.share === "function";
+}
