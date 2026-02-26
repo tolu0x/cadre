@@ -24,18 +24,19 @@ type Handle =
   | "nw" | "ne" | "sw" | "se"
   | "move";
 
-const HANDLE_SIZE = 10;
+const HANDLE_VIS = 10;  // visual size 
+const HANDLE_HIT = 28;  // touch hit area 
 const MIN_SIZE = 24;
 
 const HANDLES: { id: Handle; cursor: string; x: number; y: number }[] = [
-  { id: "nw", cursor: "nw-resize", x: 0, y: 0 },
-  { id: "n",  cursor: "n-resize",  x: 0.5, y: 0 },
-  { id: "ne", cursor: "ne-resize", x: 1, y: 0 },
-  { id: "e",  cursor: "e-resize",  x: 1, y: 0.5 },
-  { id: "se", cursor: "se-resize", x: 1, y: 1 },
-  { id: "s",  cursor: "s-resize",  x: 0.5, y: 1 },
-  { id: "sw", cursor: "sw-resize", x: 0, y: 1 },
-  { id: "w",  cursor: "w-resize",  x: 0, y: 0.5 },
+  { id: "nw", cursor: "nw-resize", x: 0,   y: 0   },
+  { id: "n",  cursor: "n-resize",  x: 0.5, y: 0   },
+  { id: "ne", cursor: "ne-resize", x: 1,   y: 0   },
+  { id: "e",  cursor: "e-resize",  x: 1,   y: 0.5 },
+  { id: "se", cursor: "se-resize", x: 1,   y: 1   },
+  { id: "s",  cursor: "s-resize",  x: 0.5, y: 1   },
+  { id: "sw", cursor: "sw-resize", x: 0,   y: 1   },
+  { id: "w",  cursor: "w-resize",  x: 0,   y: 0.5 },
 ];
 
 export default function CropOverlay({
@@ -60,37 +61,50 @@ export default function CropOverlay({
   const applyAspectRatio = useCallback(
     (w: number, h: number, anchor: Handle): { w: number; h: number } => {
       if (!aspectRatio) return { w, h };
-      if (anchor === "n" || anchor === "s") {
-        return { w: h * aspectRatio, h };
-      }
+      if (anchor === "n" || anchor === "s") return { w: h * aspectRatio, h };
       return { w, h: w / aspectRatio };
     },
     [aspectRatio]
   );
 
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent, handle: Handle) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const rect = svgRef.current!.getBoundingClientRect();
+  const startDrag = useCallback(
+    (clientX: number, clientY: number, handle: Handle) => {
+      if (!svgRef.current) return;
+      const rect = svgRef.current.getBoundingClientRect();
       dragging.current = {
         handle,
-        startX: e.clientX - rect.left,
-        startY: e.clientY - rect.top,
+        startX: clientX - rect.left,
+        startY: clientY - rect.top,
         startBox: { ...cropBox },
       };
     },
     [cropBox]
   );
 
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent, handle: Handle) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startDrag(e.clientX, e.clientY, handle);
+    },
+    [startDrag]
+  );
+
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent, handle: Handle) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startDrag(e.touches[0].clientX, e.touches[0].clientY, handle);
+    },
+    [startDrag]
+  );
+
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
+    const processMove = (clientX: number, clientY: number) => {
       if (!dragging.current || !svgRef.current) return;
       const rect = svgRef.current.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const dx = mx - dragging.current.startX;
-      const dy = my - dragging.current.startY;
+      const dx = (clientX - rect.left) - dragging.current.startX;
+      const dy = (clientY - rect.top)  - dragging.current.startY;
       const { handle, startBox } = dragging.current;
 
       // eslint-disable-next-line prefer-const
@@ -103,6 +117,7 @@ export default function CropOverlay({
         return;
       }
 
+      // eslint-disable-next-line prefer-const
       let newX = x, newY = y, newW = w, newH = h;
 
       if (handle.includes("e")) newW = clamp(startBox.w + dx, MIN_SIZE, containerWidth - startBox.x);
@@ -128,7 +143,6 @@ export default function CropOverlay({
           newW = newH * aspectRatio;
           if (handle.includes("w")) newX = startBox.x + startBox.w - newW;
         } else {
-          // corner: use whatever dimension changed more
           const dw = Math.abs(newW - startBox.w);
           const dh = Math.abs(newH - startBox.h);
           if (dw >= dh) {
@@ -142,7 +156,7 @@ export default function CropOverlay({
 
         if (newX < 0) { newW += newX; if (aspectRatio) newH = newW / aspectRatio; newX = 0; }
         if (newY < 0) { newH += newY; if (aspectRatio) newW = newH * aspectRatio; newY = 0; }
-        if (newX + newW > containerWidth) { newW = containerWidth - newX; if (aspectRatio) newH = newW / aspectRatio; }
+        if (newX + newW > containerWidth)  { newW = containerWidth  - newX; if (aspectRatio) newH = newW / aspectRatio; }
         if (newY + newH > containerHeight) { newH = containerHeight - newY; if (aspectRatio) newW = newH * aspectRatio; }
       }
 
@@ -151,19 +165,30 @@ export default function CropOverlay({
       }
     };
 
-    const onMouseUp = () => { dragging.current = null; };
+    const onMouseMove = (e: MouseEvent) => processMove(e.clientX, e.clientY);
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging.current) return;
+      e.preventDefault();
+      processMove(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const stopDrag = () => { dragging.current = null; };
 
     window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("mouseup", stopDrag);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", stopDrag);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("mouseup", stopDrag);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", stopDrag);
     };
   }, [containerWidth, containerHeight, aspectRatio, onChange, applyAspectRatio]);
 
   const { x, y, w, h } = cropBox;
 
-  // full rect minus cropbox cutout
   const scrimPath = `M0,0 H${containerWidth} V${containerHeight} H0 Z M${x},${y} H${x + w} V${y + h} H${x} Z`;
 
   return (
@@ -175,12 +200,7 @@ export default function CropOverlay({
     >
       <path d={scrimPath} fill="rgba(0,0,0,0.55)" fillRule="evenodd" />
 
-      <rect
-        x={x} y={y} width={w} height={h}
-        fill="transparent"
-        stroke="var(--accent)"
-        strokeWidth="1"
-      />
+      <rect x={x} y={y} width={w} height={h} fill="transparent" stroke="var(--accent)" strokeWidth="1" />
 
       {[1, 2].map((n) => (
         <g key={n} stroke="rgba(232,213,176,0.2)" strokeWidth="0.5">
@@ -190,27 +210,39 @@ export default function CropOverlay({
       ))}
 
       <rect
-        x={x + HANDLE_SIZE} y={y + HANDLE_SIZE}
-        width={w - HANDLE_SIZE * 2} height={h - HANDLE_SIZE * 2}
+        x={x + HANDLE_HIT / 2} y={y + HANDLE_HIT / 2}
+        width={w - HANDLE_HIT} height={h - HANDLE_HIT}
         fill="transparent"
         cursor="move"
         onMouseDown={(e) => onMouseDown(e, "move")}
+        onTouchStart={(e) => onTouchStart(e, "move")}
       />
 
+
       {HANDLES.map(({ id, cursor, x: hx, y: hy }) => (
-        <rect
-          key={id}
-          x={x + w * hx - HANDLE_SIZE / 2}
-          y={y + h * hy - HANDLE_SIZE / 2}
-          width={HANDLE_SIZE}
-          height={HANDLE_SIZE}
-          fill="var(--accent)"
-          stroke="var(--bg)"
-          strokeWidth="1"
-          rx="1"
-          cursor={cursor}
-          onMouseDown={(e) => onMouseDown(e, id)}
-        />
+        <g key={id}>
+          <rect
+            x={x + w * hx - HANDLE_HIT / 2}
+            y={y + h * hy - HANDLE_HIT / 2}
+            width={HANDLE_HIT}
+            height={HANDLE_HIT}
+            fill="transparent"
+            cursor={cursor}
+            onMouseDown={(e) => onMouseDown(e, id)}
+            onTouchStart={(e) => onTouchStart(e, id)}
+          />
+          <rect
+            x={x + w * hx - HANDLE_VIS / 2}
+            y={y + h * hy - HANDLE_VIS / 2}
+            width={HANDLE_VIS}
+            height={HANDLE_VIS}
+            fill="var(--accent)"
+            stroke="var(--bg)"
+            strokeWidth="1"
+            rx="1"
+            className="pointer-events-none"
+          />
+        </g>
       ))}
 
       {w > 80 && h > 36 && (() => {
@@ -225,18 +257,15 @@ export default function CropOverlay({
         return (
           <g className="pointer-events-none">
             <rect
-              x={px - pillW / 2}
-              y={py - pillH / 2}
-              width={pillW}
-              height={pillH}
+              x={px - pillW / 2} y={py - pillH / 2}
+              width={pillW} height={pillH}
               rx={4}
               fill="rgba(0,0,0,0.72)"
               stroke="rgba(232,213,176,0.18)"
               strokeWidth="1"
             />
             <text
-              x={px}
-              y={py + 4.5}
+              x={px} y={py + 4.5}
               textAnchor="middle"
               fill="#e8d5b0"
               fontSize={11}

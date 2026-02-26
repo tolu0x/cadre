@@ -138,14 +138,14 @@ export default function Home() {
           </span>
         </div>
 
-        <div className="fade-up delay-1 flex-1 flex items-center justify-end px-5 gap-2">
+        <div className="fade-up delay-1 flex-1 flex items-center justify-end px-3 sm:px-5 gap-2">
           {!imageSrc && (
-            <span className="text-[10px] font-mono tracking-[0.14em] text-subtle uppercase">
+            <span className="hidden sm:inline text-[10px] font-mono tracking-[0.14em] text-subtle uppercase">
               Image Cropping Tool
             </span>
           )}
           {imageSrc && (
-            <>
+            <div className="hidden sm:flex items-center gap-2">
               <Button onClick={handleReset} variant="ghost">RESET</Button>
               <Button onClick={handleClear} variant="ghost" danger>CLEAR</Button>
               <Button onClick={handleCrop} variant="primary" loading={exporting}>
@@ -154,12 +154,26 @@ export default function Home() {
                 </svg>
                 EXPORT
               </Button>
-            </>
+            </div>
           )}
           <div className="w-px h-5 bg-border mx-1 shrink-0" />
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
       </header>
+
+      {imageSrc && (
+        <div className="sm:hidden flex items-center gap-2 px-4 py-2.5 bg-surface border-b border-border shrink-0">
+          <Button onClick={handleReset} variant="ghost">RESET</Button>
+          <Button onClick={handleClear} variant="ghost" danger>CLEAR</Button>
+          <div className="flex-1" />
+          <Button onClick={handleCrop} variant="primary" loading={exporting}>
+            <svg width="9" height="10" viewBox="0 0 9 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
+              <path d="M4.5 1v6M1.5 5.5l3 3 3-3" />
+            </svg>
+            EXPORT
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col">
         {!imageSrc ? (
@@ -177,39 +191,41 @@ export default function Home() {
 
           <div className="flex-1 flex flex-col fade-in">
 
-            <div className="flex items-center gap-5 px-6 h-[54px] border-b border-border bg-surface shrink-0">
-              <span className="text-[9px] font-mono tracking-[0.18em] text-subtle uppercase shrink-0">
-                Ratio
-              </span>
-              <AspectRatioSelector value={ratio} onChange={setRatio} />
-
-              <div className="w-px h-5 bg-border shrink-0" />
-
-              <button
-                role="switch"
-                aria-checked={extendMode}
-                onClick={() => setExtendMode(v => !v)}
-                className={`flex items-center gap-2.5 cursor-pointer transition-colors duration-150 ${extendMode ? "text-accent" : "text-muted hover:text-foreground"}`}
-              >
-                <div className={`relative w-7 h-3.5 rounded-full transition-colors duration-200 ${extendMode ? "bg-accent" : "bg-surface-2 border border-border"}`}>
-                  <div className={`absolute w-[10px] h-[10px] rounded-full transition-all duration-200 ${extendMode ? "top-[2px] left-[14px] bg-canvas" : "top-[1px] left-[2px] bg-muted"}`} />
-                </div>
-                <span className="text-[10px] font-mono tracking-[0.1em] uppercase">
-                  Extend canvas
+            <div className="flex items-stretch h-[54px] border-b border-border bg-surface shrink-0 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-4 px-4 sm:px-6 overflow-x-auto min-w-0">
+                <span className="hidden sm:inline text-[9px] font-mono tracking-[0.18em] text-subtle uppercase shrink-0">
+                  Ratio
                 </span>
-              </button>
+                <AspectRatioSelector value={ratio} onChange={setRatio} />
+              </div>
 
-              {cropBox && (
-                <div className="ml-auto flex items-center gap-2 shrink-0">
-                  <span className="text-[9px] font-mono tracking-[0.18em] text-subtle uppercase">out</span>
-                  <span className="text-[11px] font-mono tracking-[0.04em] tabular-nums">
-                    {Math.round(cropBox.w)} &times; {Math.round(cropBox.h)}
+              <div className="flex items-center gap-3 sm:gap-5 px-3 sm:px-5 shrink-0 border-l border-border">
+                <button
+                  role="switch"
+                  aria-checked={extendMode}
+                  onClick={() => setExtendMode(v => !v)}
+                  className={`flex items-center gap-2.5 cursor-pointer transition-colors duration-150 ${extendMode ? "text-accent" : "text-muted hover:text-foreground"}`}
+                >
+                  <div className={`relative w-7 h-3.5 rounded-full transition-colors duration-200 ${extendMode ? "bg-accent" : "bg-surface-2 border border-border"}`}>
+                    <div className={`absolute w-[10px] h-[10px] rounded-full transition-all duration-200 ${extendMode ? "top-[2px] left-[14px] bg-canvas" : "top-[1px] left-[2px] bg-muted"}`} />
+                  </div>
+                  <span className="text-[10px] font-mono tracking-[0.1em] uppercase">
+                    Extend canvas
                   </span>
-                </div>
-              )}
+                </button>
+
+                {cropBox && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[9px] font-mono tracking-[0.18em] text-subtle uppercase">out</span>
+                    <span className="text-[11px] font-mono tracking-[0.04em] tabular-nums">
+                      {Math.round(cropBox.w)} &times; {Math.round(cropBox.h)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex-1 flex items-center justify-center p-8 bg-canvas dot-grid overflow-hidden">
+            <div className="flex-1 flex items-center justify-center p-3 sm:p-8 bg-canvas dot-grid overflow-hidden">
               <div className="relative inline-block leading-[0] shadow-[0_12px_48px_rgba(0,0,0,0.7)] max-w-full">
                 <div className="absolute inset-0 checkerboard" />
 
@@ -222,7 +238,7 @@ export default function Home() {
                     src={imageSrc}
                     alt="Uploaded"
                     onLoad={(e) => handleImageLoad(e)}
-                    className="block max-w-[min(900px,calc(100vw-120px))] max-h-[calc(100vh-200px)] object-contain"
+                    className="block max-w-[min(900px,calc(100vw-24px))] sm:max-w-[min(900px,calc(100vw-120px))] max-h-[calc(100vh-200px)] object-contain"
                     draggable={false}
                   />
 

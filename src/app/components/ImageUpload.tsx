@@ -57,7 +57,7 @@ export default function ImageUpload({ onImageLoaded }: ImageUploadProps) {
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
-      className={`group relative flex flex-col items-center justify-center gap-7 py-20 px-20 cursor-pointer select-none transition-colors duration-200 ${isDragging ? "bg-accent/[3%]" : ""}`}
+      className={`group relative flex flex-col items-center justify-center gap-7 py-12 px-10 sm:py-20 sm:px-20 cursor-pointer select-none transition-colors duration-200 ${isDragging ? "bg-accent/[3%]" : ""}`}
     >
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
