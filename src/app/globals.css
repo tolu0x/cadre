@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas:      #0D0C0A;
+  --color-surface:     #141210;
+  --color-surface-2:   #1D1B18;
+  --color-panel:       #252320;
+  --color-border:      #302D29;
+  --color-border-dim:  #201E1B;
+  --color-foreground:  #EDE5D8;
+  --color-muted:       #7A7168;
+  --color-subtle:      #47433E;
+  --color-accent:      #D4870A;
+  --color-accent-dim:  #8C5A07;
+  --color-danger:      #B03020;
+}
+
+@theme inline {
+  --font-display: var(--font-bebas-neue);
+  --font-mono:    var(--font-ibm-plex-mono);
+}
+
+
+:root {
+  --bg:           var(--color-canvas);
+  --surface:      var(--color-surface);
+  --surface-2:    var(--color-surface-2);
+  --border:       var(--color-border);
+  --border-hover: var(--color-border);
+  --text:         var(--color-foreground);
+  --text-muted:   var(--color-muted);
+  --text-subtle:  var(--color-subtle);
+  --accent:       var(--color-accent);
+  --accent-dim:   var(--color-accent-dim);
+  --danger:       var(--color-danger);
+  --checker-a:    #252220;
+  --checker-b:    #1A1816;
+}
+
+html.light {
+  --color-canvas:      #F2E8D5;
+  --color-surface:     #EAE0CB;
+  --color-surface-2:   #DDD3BC;
+  --color-panel:       #D4C8AE;
+  --color-border:      #C0B098;
+  --color-border-dim:  #D4C8AE;
+  --color-foreground:  #1A1510;
+  --color-muted:       #7A6A58;
+  --color-subtle:      #A89880;
+  --color-accent:      #B86E04;
+  --color-accent-dim:  #7A4A02;
+  --color-danger:      #B03020;
+  --bg:                #F2E8D5;
+  --surface:           #EAE0CB;
+  --surface-2:         #DDD3BC;
+  --border:            #C0B098;
+  --border-hover:      #C0B098;
+  --text:              #1A1510;
+  --text-muted:        #7A6A58;
+  --text-subtle:       #A89880;
+  --accent:            #B86E04;
+  --accent-dim:        #7A4A02;
+  --danger:            #B03020;
+  --checker-a:         #D8CCBA;
+  --checker-b:         #E4D8C4;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-foreground);
+  font-family: var(--font-mono), monospace;
+  margin: 0;
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-canvas);
+}
+
+.dot-grid {
+  background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.checkerboard {
+  background-image:
+    linear-gradient(45deg, var(--checker-a) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checker-a) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checker-a) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checker-a) 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.fade-up   { animation: fadeUp 0.38s ease forwards; }
+.fade-in   { animation: fadeIn 0.3s ease forwards; }
+.delay-1   { animation-delay: 0.06s; opacity: 0; }
+.delay-2   { animation-delay: 0.14s; opacity: 0; }
+.delay-3   { animation-delay: 0.24s; opacity: 0; }
